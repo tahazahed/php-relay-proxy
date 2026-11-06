@@ -7,8 +7,8 @@
 
 [![PHP](https://img.shields.io/badge/PHP-7.4%20%E2%80%93%208.3-777BB4?logo=php&logoColor=white)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](#چرا-بدون-composer)
-[![Server](https://img.shields.io/badge/server-Apache%20%7C%20LiteSpeed-blue.svg)](#سازگاری-وب‌سرور)
+[![Dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](#no-composer)
+[![Server](https://img.shields.io/badge/server-Apache%20%7C%20LiteSpeed-blue.svg)](#webserver)
 
 [English](README.md) · [راهنمای نصب روی cPanel](docs/deployment-cpanel.md) · [گزارش مشکل امنیتی](SECURITY.md)
 
@@ -349,6 +349,8 @@ curl https://relay.example.com/ \
 
 ---
 
+<a id="webserver"></a>
+
 ## سازگاری وب‌سرور
 
 خلاصه: **روی هر اکانت cPanel یا DirectAdmin کار می‌کند.** مفصل‌تر:
@@ -542,6 +544,8 @@ location ~ ^/panel\.php$ {
 ---
 
 ## از داخل چطور کار می‌کند
+
+<a id="no-composer"></a>
 
 ### چرا بدون Composer
 

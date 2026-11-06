@@ -1,0 +1,19 @@
+# Normalise line endings. Files are stored with LF in the repository and
+# checked out with whatever the contributor's platform uses.
+* text=auto eol=lf
+
+# Uploading these to a Linux host is the whole deployment story, so they must
+# never pick up CRLF on the way through a Windows checkout.
+*.php   text eol=lf
+*.htaccess text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.json  text eol=lf
+
+# Binary — never touch these.
+*.png   binary
+*.woff2 binary
+*.zip   binary
+
+# Keep generated screenshots out of diffs and language statistics.
+docs/screenshots/* linguist-documentation
