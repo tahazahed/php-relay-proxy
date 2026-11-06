@@ -32,20 +32,21 @@ real destination, and hands the response back untouched — byte for byte, heade
 code and all.
 
 ```
-┌──────────────────┐                                    ┌──────────────────┐
-│   Your server    │                                    │   Destination    │
-│    (blocked)     │                                    │ api.telegram.org │
-└────────┬─────────┘                                    └────────▲─────────┘
-         │                                                       │
-         │  GET https://relay.example.com/r/KEY/                  │
-         │      https://api.telegram.org/bot<TOKEN>/getMe         │
-         │                                                       │
-         │              ┌──────────────────────────┐             │
-         └─────────────►│    This script, on a     │─────────────┘
-                        │  host that is not blocked │
-         ◄──────────────│       (cPanel, €2/mo)     │◄─────────────
-            response    └──────────────────────────┘    response
-            unchanged                                   unchanged
+ YOUR SERVER                      THE RELAY                     DESTINATION
+  (blocked)                     (this script)              api.telegram.org
+      |                               |                                   |
+GET /r/<KEY>/https://api.telegram.org/bot<TOKEN>/getMe
+      |------------------------------>|                                   |
+      |                               |                                   |
+                                              GET /bot<TOKEN>/getMe
+      |                               |---------------------------------->|
+      |                               |                                   |
+                                                 200 OK  +  body
+      |                               |<----------------------------------|
+      |                               |                                   |
+         the same 200, byte for byte
+      |<------------------------------|                                   |
+      |                               |                                   |
 ```
 
 The application code changes by one line: the API base URL. Everything else — the bot
