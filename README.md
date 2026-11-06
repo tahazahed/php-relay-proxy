@@ -179,7 +179,8 @@ Useful for update checks, CI scripts and licence servers on machines that cannot
 
 ## Requirements
 
-- PHP 7.4 or newer (tested on 7.4 through 8.3)
+- PHP 7.4 or newer. CI syntax-checks every push against 7.4, 8.0, 8.1, 8.2 and 8.3; the
+  install I run day to day is on 8.1.
 - The `curl` extension — optional but strongly preferred. Without it the relay falls back
   to stream wrappers, which are slower and need `allow_url_fopen` on.
 - `openssl` and `json`
