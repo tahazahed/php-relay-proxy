@@ -1,0 +1,58 @@
+# ─────────────────────────────────────────────────────────────────────
+# PHP Relay Proxy — تنظیمات Apache / LiteSpeed
+# روی cPanel و DirectAdmin بدون تغییر کار می‌کند.
+#
+# نکته: از <FilesMatch> بر اساس پسوند استفاده نشده است، چون آدرس مقصد
+# داخل مسیر قرار می‌گیرد و مثلاً /r/KEY/https://x.com/data.json باعث
+# می‌شد Apache قبل از رسیدن به rewrite جواب 403 بدهد.
+# ─────────────────────────────────────────────────────────────────────
+
+Options -Indexes -MultiViews
+
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # هدر Authorization روی CGI/FastCGI به PHP نمی‌رسد؛ دستی منتقلش می‌کنیم
+    RewriteCond %{HTTP:Authorization} ^(.+)$
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%1]
+
+    # پنل مدیریت و فایل‌های استاتیک (فونت) مستقیم سرو می‌شوند
+    RewriteRule ^panel\.php$ - [L]
+    RewriteRule ^assets/ - [L]
+
+    # پیشوندهای رله همیشه به index.php می‌روند
+    RewriteRule ^(r|relay|proxy)(/|$) index.php [L,QSA]
+
+    # مسیرهایی که با آدرس کامل شروع می‌شوند (حالت کوتاه)
+    RewriteRule ^https?:/ index.php [L,QSA]
+
+    # هر چیز دیگری که فایل واقعی نیست
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+# اگر mod_rewrite نبود، از این شکل آدرس استفاده کنید:
+#   https://relay.example.com/index.php/r/<KEY>/https://api.telegram.org/bot<TOKEN>/getMe
+
+# ── تنظیمات PHP (فقط با mod_php اثر دارد؛ روی FPM از php.ini استفاده کنید) ──
+<IfModule mod_php7.c>
+    php_flag zlib.output_compression Off
+    php_flag output_buffering Off
+    php_value max_execution_time 300
+</IfModule>
+
+<IfModule mod_php.c>
+    php_flag zlib.output_compression Off
+    php_flag output_buffering Off
+    php_value max_execution_time 300
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header unset X-Powered-By
+</IfModule>
+
+ServerSignature Off

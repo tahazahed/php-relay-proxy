@@ -1,0 +1,60 @@
+name: Lint
+
+# The project has no test suite and no build step by design — it has to run on a
+# shared host with no shell. What CI can usefully do is prove the code still parses
+# on every PHP version we claim to support.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  syntax:
+    name: PHP ${{ matrix.php }} syntax check
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.0', '8.1', '8.2', '8.3']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, json, openssl
+          coverage: none
+
+      - name: Lint every PHP file
+        run: |
+          status=0
+          while IFS= read -r -d '' file; do
+            if ! php -l "$file" > /dev/null; then
+              echo "::error file=$file::Syntax error"
+              php -l "$file" || true
+              status=1
+            fi
+          done < <(find . -name '*.php' -not -path './vendor/*' -print0)
+          exit $status
+
+      - name: Confirm the config sample is valid PHP and returns an array
+        run: |
+          php -r '
+            $config = require "config.sample.php";
+            if (!is_array($config)) {
+              fwrite(STDERR, "config.sample.php did not return an array\n");
+              exit(1);
+            }
+            foreach (["app", "auth", "target", "http", "rate_limit", "log", "panel"] as $section) {
+              if (!isset($config[$section])) {
+                fwrite(STDERR, "missing section: $section\n");
+                exit(1);
+              }
+            }
+            echo "config.sample.php looks fine\n";
+          '

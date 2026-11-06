@@ -1,0 +1,33 @@
+# ─── تنظیمات و اعتبارنامه‌ها — هیچ‌وقت کامیت نشوند ───────────────────
+/config.php
+/settings.json
+/relay-private/
+RELAY-CREDENTIALS.txt
+cpanel.md
+
+# نصب فعلی خودتان: دامنه، IP و مسیرهای واقعی سرور. محلی بماند.
+/DEPLOYMENT.md
+
+# اسکریپت‌ها و کانفیگ ساخته‌شده هنگام دیپلوی
+.deploy/
+
+# ─── داده‌های زمان اجرا ─────────────────────────────────────────────
+storage/logs/*
+!storage/logs/.gitkeep
+storage/rate/*
+!storage/rate/.gitkeep
+
+# ─── خروجی بیلد ────────────────────────────────────────────────────
+*.zip
+
+# ─── ابزارها و سیستم‌عامل ──────────────────────────────────────────
+.idea/
+.vscode/
+nbproject/
+*.sublime-*
+.DS_Store
+Thumbs.db
+desktop.ini
+*.bak
+*.swp
+*~
