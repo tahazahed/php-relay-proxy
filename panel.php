@@ -1081,7 +1081,7 @@ $iconNet   = 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.
 
         <p class="foot sign">
             <a href="https://github.com/tahazahed/php-relay-proxy" target="_blank" rel="noopener noreferrer">php-relay-proxy</a>
-            · ساخته‌شده توسط <a href="https://github.com/tahazahed" target="_blank" rel="noopener noreferrer">Taha&nbsp;Zahed</a>
+            · نوشته‌ی <a href="https://github.com/tahazahed" target="_blank" rel="noopener noreferrer">Taha&nbsp;Zahed</a>
         </p>
     </div>
 
@@ -1783,10 +1783,10 @@ $iconNet   = 'M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.
     </p>
 
     <p class="foot sign">
-        ساخته‌شده توسط <a href="https://github.com/tahazahed" target="_blank" rel="noopener noreferrer">Taha&nbsp;Zahed</a>
-        · اگر به کارتان آمد، در
+        نوشته‌ی <a href="https://github.com/tahazahed" target="_blank" rel="noopener noreferrer">Taha&nbsp;Zahed</a>
+        · اگر به دردتان خورد، در
         <a href="https://github.com/tahazahed/php-relay-proxy" target="_blank" rel="noopener noreferrer">گیت‌هاب</a>
-        یک <span class="star">★</span> بدهید
+        یک <span class="star">★</span> بزنید
     </p>
 
 <?php } ?>

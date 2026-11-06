@@ -61,7 +61,14 @@ library, the request bodies, the file uploads — stays exactly as it was.
 
 ## Concrete scenarios
 
-### 1. A Telegram bot whose code cannot be moved
+A relay is boring on purpose: it moves an HTTP request from a server that cannot make it
+to one that can. What changes between these cases is only *where you hook it in* — a base
+URL, a framework filter, or one Guzzle middleware.
+
+Every example below was run through this code against a real endpoint before it went in
+the README.
+
+### A Telegram bot whose code cannot be moved
 
 Your bot runs on an Iranian host. Point its API base at the relay:
 
@@ -112,7 +119,7 @@ A complete working example of both is in
 [`clients/telegram-webhook.php`](clients/telegram-webhook.php). That file goes on your
 *own* server, not on the relay.
 
-### 2. LLM APIs from a server that cannot reach them
+### LLM APIs: OpenAI, Claude, Gemini
 
 Same shape, different host. Add the domain to the allowlist and change the base URL:
 
@@ -127,7 +134,137 @@ Streamed responses (`"stream": true`) work, because the relay streams the body o
 chunks instead of buffering it. A one-gigabyte download will not blow the memory limit
 either.
 
-### 3. Keeping API keys off the application server
+### A WordPress site, without touching plugin code
+
+This is the case where editing every call site is not realistic — the outbound requests
+are buried inside themes and plugins you did not write. WordPress routes all of them
+through one HTTP API, so you can redirect it from a single must-use plugin.
+
+Save this as `wp-content/mu-plugins/relay.php` and nothing else changes:
+
+```php
+<?php
+// wp-content/mu-plugins/relay.php — loads before regular plugins, cannot be deactivated
+
+const RELAY_BASE  = 'https://relay.example.com';
+const RELAY_KEY   = 'your-key';
+const RELAY_HOSTS = ['api.telegram.org', 'api.openai.com', 'www.google.com'];
+
+add_filter('pre_http_request', static function ($preempt, $args, $url) {
+    static $busy = false;
+
+    // the relayed call below re-enters this filter; the flag stops the recursion
+    if ($busy || !in_array(parse_url($url, PHP_URL_HOST), RELAY_HOSTS, true)) {
+        return $preempt;
+    }
+
+    $busy   = true;
+    $result = wp_remote_request(RELAY_BASE . '/r/' . RELAY_KEY . '/' . $url, $args);
+    $busy   = false;
+
+    return $result;
+}, 10, 3);
+```
+
+Returning a response array from `pre_http_request` short-circuits WordPress's own request,
+so plugins get a normal `wp_remote_*` result and never learn a relay was involved.
+
+### Laravel and Guzzle: one middleware, every call site unchanged
+
+Same idea, different framework. A `mapRequest` middleware rewrites the URI of any request
+headed for a blocked host:
+
+```php
+use GuzzleHttp\Client;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Middleware;
+use GuzzleHttp\Psr7\Uri;
+use Psr\Http\Message\RequestInterface;
+
+$relayed = ['api.openai.com', 'api.telegram.org', 'api.stripe.com'];
+
+$stack = HandlerStack::create();
+
+$stack->push(Middleware::mapRequest(function (RequestInterface $request) use ($relayed) {
+    if (!in_array($request->getUri()->getHost(), $relayed, true)) {
+        return $request;
+    }
+
+    return $request->withUri(new Uri(
+        config('relay.base') . '/r/' . config('relay.key') . '/' . $request->getUri()
+    ));
+}));
+
+$client = new Client(['handler' => $stack]);
+```
+
+`withUri()` rewrites the `Host` header to the relay by default, which is what you want
+here. In Laravel, hand the same stack to the HTTP client:
+
+```php
+Http::withOptions(['handler' => $stack])->post('https://api.openai.com/v1/chat/completions', $payload);
+```
+
+### Push notifications through Firebase
+
+The detail people miss is that this needs **two** hosts on the allowlist, not one. Minting
+the access token and sending the message are different Google services:
+
+```
+oauth2.googleapis.com     ← exchanges the service-account JWT for an access token
+fcm.googleapis.com        ← actually sends the notification
+```
+
+```bash
+# 1. get an access token
+curl "https://relay.example.com/r/<KEY>/https://oauth2.googleapis.com/token" \
+     -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=<SIGNED_JWT>"
+
+# 2. send to a device
+curl "https://relay.example.com/r/<KEY>/https://fcm.googleapis.com/v1/projects/<PROJECT>/messages:send" \
+     -H "Authorization: Bearer <ACCESS_TOKEN>" \
+     -H "Content-Type: application/json" \
+     -d '{"message":{"token":"<DEVICE>","notification":{"title":"سلام","body":"یک پیام تازه"}}}'
+```
+
+The colon in `messages:send` survives the trip, and so does the UTF-8 — a JSON body with
+Persian text comes out the far side byte for byte.
+
+### Verifying reCAPTCHA server-side
+
+A contact form on a blocked server cannot validate its own captcha, because the check is
+a server-to-server POST to Google that times out. The form then either rejects every
+legitimate submission or gets configured to skip validation, which defeats the point.
+
+```bash
+curl -X POST "https://relay.example.com/r/<KEY>/https://www.google.com/recaptcha/api/siteverify" \
+     -d "secret=<SECRET>&response=<TOKEN_FROM_BROWSER>&remoteip=<USER_IP>"
+```
+
+Allowlist `www.google.com` and the form works again.
+
+**One honest caveat:** this fixes the server half only. Your visitor's browser still has to
+load the reCAPTCHA widget itself. If your users are also behind the blocking, a server-side
+relay does not help them — use a captcha whose assets they can actually reach.
+
+### Payment, SMS and email providers
+
+All the same shape: add the host to the allowlist, put the relay in front of the base URL.
+
+| Service | Host to allowlist |
+|---|---|
+| Stripe | `api.stripe.com` |
+| PayPal | `api-m.paypal.com` |
+| Twilio | `api.twilio.com` |
+| SendGrid | `api.sendgrid.com` |
+| Mailgun | `api.mailgun.net` |
+
+**Webhooks are the other direction.** The relay handles your server calling out. A provider
+calling *in* to tell you a payment succeeded still needs your server to be reachable from
+the internet — or you poll for status instead, the same trade-off as `getUpdates` versus a
+Telegram webhook.
+
+### Keeping API keys off the application server
 
 If your Iranian server is ever compromised, any API key stored in its code goes with it.
 You can keep the key on the relay instead:
@@ -145,7 +282,7 @@ The application server now sends requests without the key and the relay injects 
 way out. The application only holds the relay key, which you can revoke from the panel in
 two clicks without touching the upstream account.
 
-### 4. GitHub, Composer and npm from a blocked box
+### GitHub, Composer and npm
 
 ```bash
 curl "https://relay.example.com/r/<KEY>/https://api.github.com/repos/laravel/laravel/releases/latest"
@@ -153,6 +290,22 @@ curl "https://relay.example.com/r/<KEY>/https://api.github.com/repos/laravel/lar
 
 Useful for update checks, CI scripts and licence servers on machines that cannot reach
 `api.github.com` or `registry.npmjs.org` directly.
+
+### Where this approach runs out
+
+Worth knowing before you build on it:
+
+- **WebSockets do not work.** A PHP script on shared hosting cannot hold a bidirectional
+  connection open. There is no workaround here; you need a different kind of host.
+- **Inbound traffic is not covered.** This is an outbound relay. Anything that has to
+  reach *you* — webhooks, callbacks, OAuth redirects — still needs a reachable server, or
+  a polling design instead.
+- **Host-bound request signatures need testing.** Schemes that sign the `Host` header or
+  the full URL, AWS Signature V4 being the common one, are sensitive to a request being
+  re-issued. Try it against your actual provider before you depend on it.
+- **Browser-side blocking is a separate problem.** If your visitors cannot load a script
+  or widget, relaying your server's calls changes nothing for them.
+- **You are adding a hop.** Expect the extra round trip to your relay host on every call.
 
 ---
 

@@ -197,7 +197,7 @@ return [
         'enabled'        => true,
         'dir'            => __DIR__ . '/storage/logs',
         'level'          => 'info',  // debug | info | warning | error | off
-        'log_bodies'     => false,   // هشدار: بدنه‌ها ممکن است توکن و داده حساس داشته باشند
+        'log_bodies'     => false,   // حواستان باشد: توکن و داده حساس هم داخل لاگ می‌افتد
         'body_limit'     => 2048,
 
         // سقف حجم لاگ.
